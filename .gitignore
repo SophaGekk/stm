@@ -1,0 +1,9 @@
+/build
+/firmware/DebugConfig
+/firmware/Listings
+/firmware/Objects
+/firmware/RTE
+/firmware/*.uvguix.*
+/firmware/*.uvoptx
+/firmware/*.uvprojx
+/firmware/*.scvd
