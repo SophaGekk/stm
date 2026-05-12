@@ -844,22 +844,39 @@ void MainWindow::on_configureDSButton_clicked()
         return;
     }
     dsConfigDialog_warning = true;
+
     if(ds18b20Params.isEmpty()) {
         QMessageBox::warning(this, "Предупреждение", "Нет доступных датчиков DS18B20!");
         dsConfigDialog_warning = false;
         return;
     }
 
+    // Приостанавливаем автообновление
     pauseAutoUpdate(10);
     dsConfigDialogOpen = true;
+
     SelectDS18B20Dialog selectDlg(ds18b20Params.size(), this);
+
+    int result = selectDlg.exec();
+    qDebug() << "Dialog result:" << result;
+
+    if(result != QDialog::Accepted) {
+        qDebug() << "Dialog cancelled";
+        dsConfigDialogOpen = false;
+        dsConfigDialog_warning = false;
+        return;
+    }
 
     int selectedIndex = selectDlg.getSelectedIndex();
     bool applyToAll = (selectedIndex == -1);
 
+    qDebug() << "Selected index:" << selectedIndex;
+    qDebug() << "Apply to all:" << applyToAll;
+
     DS18B20ConfigDialog dlg(this);
 
     if(!applyToAll && selectedIndex >= 0 && selectedIndex < ds18b20Params.size()) {
+        qDebug() << "Loading current settings for sensor" << selectedIndex;
         dlg.setTH(ds18b20Params[selectedIndex].th);
         dlg.setTL(ds18b20Params[selectedIndex].tl);
         dlg.setResolution(ds18b20Params[selectedIndex].resolution);
@@ -877,9 +894,9 @@ void MainWindow::on_configureDSButton_clicked()
         default: resolutionStr = "12 бит (0.0625°C)"; break;
         }
 
-        // Отправляем команды на устройство
+        qDebug() << "New settings: TH=" << th << "TL=" << tl << "Res=" << resolutionValue;
+
         if(applyToAll) {
-            bool allSuccess = true;
             for(int i = 0; i < ds18b20Params.size(); i++) {
                 QString cmd = QString("set_ds %1,%2,%3,%4")
                 .arg(ds18b20Params[i].index)
@@ -887,22 +904,17 @@ void MainWindow::on_configureDSButton_clicked()
                     .arg(tl, 0, 'f', 1)
                     .arg(resolutionValue);
 
+                qDebug() << "Sending command:" << cmd;
                 sendCommand(cmd);
-
-                // Небольшая задержка между командами
                 QThread::msleep(200);
 
-                // Обновляем локальные параметры
                 ds18b20Params[i].th = th;
                 ds18b20Params[i].tl = tl;
                 ds18b20Params[i].resolution = resolutionValue;
                 ds18b20Params[i].resolutionStr = resolutionStr;
             }
-
-            if(allSuccess) {
-                appendLog(QString("✅ Все DS18B20 настроены: TH=%1°C, TL=%2°C, %3")
-                              .arg(th).arg(tl).arg(resolutionStr));
-            }
+            appendLog(QString("✅ Все DS18B20 настроены: TH=%1°C, TL=%2°C, %3")
+                          .arg(th).arg(tl).arg(resolutionStr));
         }
         else if(selectedIndex >= 0 && selectedIndex < ds18b20Params.size()) {
             QString cmd = QString("set_ds %1,%2,%3,%4")
@@ -911,9 +923,9 @@ void MainWindow::on_configureDSButton_clicked()
                 .arg(tl, 0, 'f', 1)
                 .arg(resolutionValue);
 
+            qDebug() << "Sending command:" << cmd;
             sendCommand(cmd);
 
-            // Обновляем локальные параметры
             ds18b20Params[selectedIndex].th = th;
             ds18b20Params[selectedIndex].tl = tl;
             ds18b20Params[selectedIndex].resolution = resolutionValue;
@@ -939,10 +951,9 @@ void MainWindow::on_configureDSButton_clicked()
             }
         }
 
-        QMessageBox::information(this, "Информация",
-                                 "Настройки отправлены на устройство.\n"
-                                 "Датчики DS18B20 сконфигурированы.");
+        QMessageBox::information(this, "Информация", "Настройки отправлены на устройство.");
     }
+
 }
 
 void MainWindow::DialogOptDB(){
@@ -973,7 +984,6 @@ void MainWindow::on_configureLM75AButton_clicked()
     lm75aConfigDialog_warning = true;
     if(!hasLM75A) {
         QMessageBox::warning(this, "Предупреждение", "Датчик LM75A не обнаружен!");
-        lm75aConfigDialog_warning = false;
         return;
     }
 
