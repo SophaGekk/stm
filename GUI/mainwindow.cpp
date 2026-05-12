@@ -170,6 +170,9 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    QIcon icon(":/app_icon.ico");
+    setWindowIcon(icon);
+
     QTimer::singleShot(500, this, &MainWindow::checkSTM32Driver);
     lm75aParams.isActive = false;
     lm75aParams.th = 30.0;
@@ -847,7 +850,6 @@ void MainWindow::on_configureDSButton_clicked()
 
     if(ds18b20Params.isEmpty()) {
         QMessageBox::warning(this, "Предупреждение", "Нет доступных датчиков DS18B20!");
-        dsConfigDialog_warning = false;
         return;
     }
 
@@ -861,9 +863,6 @@ void MainWindow::on_configureDSButton_clicked()
     qDebug() << "Dialog result:" << result;
 
     if(result != QDialog::Accepted) {
-        qDebug() << "Dialog cancelled";
-        dsConfigDialogOpen = false;
-        dsConfigDialog_warning = false;
         return;
     }
 
